@@ -1,0 +1,59 @@
+{
+  "version": 9,
+  "cmakeMinimumRequired": {
+    "major": 3,
+    "minor": 30
+  },
+  "configurePresets": [
+    {
+      "name": "mac-base",
+      "hidden": true,
+      "description": "",
+      "generator": "Ninja",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "CMAKE_MODULE_PATH": "/opt/homebrew/opt/llvm"
+      },
+      "environment": {
+        "LLVM_BIN": "/opt/homebrew/opt/llvm/bin",
+        "CC": "$env{LLVM_BIN}/clang",
+        "CPP": "$env{LLVM_BIN}/clang-cpp",
+        "CXX": "$env{LLVM_BIN}/clang++",
+        "LD": "$env{LLVM_BIN}/lld",
+        "AR": "$env{LLVM_BIN}/llvm-ar",
+        "PATH": "$env{LLVM_BIN}:$penv{PATH}"
+      }
+    },
+    {
+      "name": "mac-debug",
+      "inherits": "mac-base",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug"
+      },
+      "binaryDir": "${sourceDir}/cmake-build-mac-debug"
+    },
+    {
+      "name": "mac-release",
+      "inherits": "mac-base",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release"
+      },
+      "binaryDir": "${sourceDir}/cmake-build-mac-release"
+    }
+  ],
+  "buildPresets": [
+    {
+      "name": "mac-debug",
+      "description": "",
+      "configurePreset": "mac-debug",
+      "jobs": 3
+    },
+    {
+      "name": "mac-release",
+      "description": "",
+      "configurePreset": "mac-release",
+      "jobs": 3
+    }
+  ],
+  "testPresets": []
+}
