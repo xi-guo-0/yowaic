@@ -28,4 +28,22 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 add_subdirectory(modules/llvm)
 
 add_executable(${PROJECT_NAME})
+set(PROJECT_NAME_LIB "${PROJECT_NAME}lib")
+add_library(${PROJECT_NAME_LIB})
 add_subdirectory(src)
+
+include(CTest)
+if(BUILD_TESTING)
+  # ---- Add dependencies via CPM ----
+  # see https://github.com/TheLartians/CPM.cmake for more info
+  include(${PROJECT_SOURCE_DIR}/cmake/CPM.cmake)
+  CPMAddPackage(
+    NAME GoogleTest
+    GITHUB_REPOSITORY google/googletest
+    GIT_TAG release-1.11.0
+  )
+  enable_testing()
+  set(PROJECT_NAME_TEST "${PROJECT_NAME}_test" )
+  add_executable(${PROJECT_NAME_TEST})
+  add_subdirectory(test)
+endif()
