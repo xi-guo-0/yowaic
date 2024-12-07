@@ -3,6 +3,7 @@
 #include <ranges>
 
 import lexer;
+import parser;
 
 class LexerTest : public ::testing::Test {
 protected:
@@ -122,6 +123,38 @@ TEST_F(LexerTest, TokenizeEndOfFile) {
   EXPECT_EQ(token.value, "");
   EXPECT_EQ(token.line, 8);
   EXPECT_EQ(token.column, 1);
+}
+
+class ParserTest : public ::testing::Test {
+protected:
+  std::string sourceCode = R"(int main() {
+    int x = 42;
+    if (x > 10) {
+        printf("Hello, World!\n");
+    }
+    return 0;
+}
+)";
+  Parser parser{sourceCode};
+};
+
+TEST(ParserTest, ParseIntLiteral_ShouldReturnCorrectIntLiteral) {
+  Parser parser("42");
+  parser.getNextToken();
+  EXPECT_EQ(dynamic_cast<IntLiteral *>(parser.ParseIntLiteral().get())->value,
+            42);
+}
+
+TEST(ParserTest, ParseVariable) {
+  Parser parser("x");
+
+  parser.getNextToken();
+  auto result = parser.ParseVariable();
+
+  EXPECT_TRUE(result != nullptr);
+  auto varExpr = dynamic_cast<VariableExprAST *>(result.get());
+  EXPECT_TRUE(varExpr != nullptr);
+  EXPECT_EQ(varExpr->Name, "x");
 }
 
 int main(int argc, char **argv) {

@@ -3,6 +3,7 @@ target_sources(${PROJECT_NAME_LIB} PUBLIC
   FILE_SET cxx_modules TYPE CXX_MODULES
   FILES
   lexer.cpp
+  parser.cpp
 )
 
 target_link_libraries(${PROJECT_NAME} PUBLIC ${PROJECT_NAME_LIB})
