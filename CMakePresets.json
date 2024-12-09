@@ -25,7 +25,7 @@
       }
     },
     {
-      "name": "mac-debug",
+      "name": "mac-Debug",
       "inherits": "mac-base",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Debug"
@@ -33,7 +33,7 @@
       "binaryDir": "${sourceDir}/cmake-build-mac-debug"
     },
     {
-      "name": "mac-release",
+      "name": "mac-Release",
       "inherits": "mac-base",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Release"
@@ -43,17 +43,29 @@
   ],
   "buildPresets": [
     {
-      "name": "mac-debug",
+      "name": "mac-Debug",
       "description": "",
-      "configurePreset": "mac-debug",
+      "configurePreset": "mac-Debug",
       "jobs": 3
     },
     {
-      "name": "mac-release",
+      "name": "mac-Release",
       "description": "",
-      "configurePreset": "mac-release",
+      "configurePreset": "mac-Release",
       "jobs": 3
     }
   ],
-  "testPresets": []
+  "testPresets": [
+    {
+      "name": "mac-Debug",
+      "configurePreset": "mac-Debug",
+      "output": {
+        "outputOnFailure": true
+      },
+      "execution": {
+        "noTestsAction": "error",
+        "stopOnFailure": true
+      }
+    }
+  ]
 }

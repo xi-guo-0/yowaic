@@ -41,6 +41,47 @@ public:
       : Callee(Callee), Args(std::move(Args)) {}
 };
 
+export class DeclarationAST : public ExprAST {
+  std::string Type;
+  std::string Name;
+  std::unique_ptr<ExprAST> InitExpr;
+
+public:
+  DeclarationAST(std::string Type, std::string Name,
+                 std::unique_ptr<ExprAST> InitExpr)
+      : Type(std::move(Type)), Name(std::move(Name)),
+        InitExpr(std::move(InitExpr)) {}
+};
+
+export class CompoundStmtAST : public ExprAST {
+  std::vector<std::unique_ptr<ExprAST>> Statements;
+
+public:
+  CompoundStmtAST(std::vector<std::unique_ptr<ExprAST>> Statements)
+      : Statements(std::move(Statements)) {}
+};
+
+export class IfStmtAST : public ExprAST {
+public:
+  std::unique_ptr<ExprAST> Condition;
+  std::unique_ptr<ExprAST> ThenBranch;
+  std::unique_ptr<ExprAST> ElseBranch;
+
+  IfStmtAST(std::unique_ptr<ExprAST> Condition,
+            std::unique_ptr<ExprAST> ThenBranch,
+            std::unique_ptr<ExprAST> ElseBranch = nullptr)
+      : Condition(std::move(Condition)), ThenBranch(std::move(ThenBranch)),
+        ElseBranch(std::move(ElseBranch)) {}
+};
+
+export class ReturnStmtAST : public ExprAST {
+  std::unique_ptr<ExprAST> ReturnExpr;
+
+public:
+  ReturnStmtAST(std::unique_ptr<ExprAST> ReturnExpr)
+      : ReturnExpr(std::move(ReturnExpr)) {}
+};
+
 export class Parser {
 private:
   Token cur_tok;
@@ -69,7 +110,11 @@ public:
     if (!LHS)
       return nullptr;
 
-    return ParseBinOpRHS(0, std::move(LHS));
+    if (cur_tok.type == TokenType::Operator) {
+      return ParseBinOpRHS(0, std::move(LHS));
+    }
+
+    return LHS;
   }
 
   std::unique_ptr<ExprAST> ParsePrimary() {
@@ -80,6 +125,13 @@ public:
       return ParseIdentifierExpr();
     case TokenType::OpenParen:
       return ParseParenExpr();
+    case TokenType::Operator:
+      if (cur_tok.value == ">" || cur_tok.value == "<" ||
+          cur_tok.value == "==" || cur_tok.value == "!=" ||
+          cur_tok.value == ">=" || cur_tok.value == "<=") {
+        return ParseExpression();
+      }
+      return nullptr;
     default:
       return nullptr;
     }
@@ -94,6 +146,7 @@ public:
 
     getNextToken();
     std::vector<std::unique_ptr<ExprAST>> Args;
+
     if (cur_tok.type != TokenType::CloseParen) {
       while (true) {
         if (auto Arg = ParseExpression())
@@ -106,11 +159,12 @@ public:
 
         if (cur_tok.type != TokenType::Comma)
           return nullptr;
+
         getNextToken();
       }
     }
-    getNextToken();
 
+    getNextToken();
     return std::make_unique<CallExprAST>(IdName, std::move(Args));
   }
 
@@ -138,6 +192,9 @@ public:
       return 40;
     if (cur_tok.value == "/")
       return 40;
+    if (cur_tok.value == ">" || cur_tok.value == "<" || cur_tok.value == ">=" ||
+        cur_tok.value == "<=" || cur_tok.value == "==" || cur_tok.value == "!=")
+      return 10;
     return -1;
   }
 
@@ -165,7 +222,148 @@ public:
 
       LHS = std::make_unique<BinaryExprAST>(BinOp, std::move(LHS),
                                             std::move(RHS));
+
+      if (cur_tok.type == TokenType::CloseParen)
+        break;
     }
+    return LHS;
+  }
+
+  std::unique_ptr<ExprAST> ParseDeclaration() {
+    std::string Type = cur_tok.value;
+    getNextToken();
+
+    if (cur_tok.type != TokenType::Identifier)
+      return nullptr;
+
+    std::string Name = cur_tok.value;
+    getNextToken();
+
+    std::unique_ptr<ExprAST> InitExpr = nullptr;
+    if (cur_tok.type == TokenType::Operator && cur_tok.value == "=") {
+      getNextToken();
+      InitExpr = ParseExpression();
+      if (!InitExpr)
+        return nullptr;
+    }
+
+    if (cur_tok.type != TokenType::Semicolon)
+      return nullptr;
+
+    getNextToken();
+    return std::make_unique<DeclarationAST>(Type, Name, std::move(InitExpr));
+  }
+
+  std::unique_ptr<ExprAST> ParseStatement() {
+    switch (cur_tok.type) {
+    case TokenType::Keyword:
+      if (cur_tok.value == "if")
+        return ParseIfStatement();
+      if (cur_tok.value == "return")
+        return ParseReturnStatement();
+      if (cur_tok.value == "int" || cur_tok.value == "void")
+        return ParseDeclaration();
+      return nullptr;
+    case TokenType::OpenBrace:
+      return ParseCompoundStatement();
+    case TokenType::Identifier:
+      return ParseVariable();
+    default:
+      auto Expr = ParseExpression();
+      if (!Expr)
+        return nullptr;
+
+      if (cur_tok.type != TokenType::Semicolon)
+        return nullptr;
+
+      getNextToken();
+      return Expr;
+    }
+  }
+
+  std::unique_ptr<ExprAST> ParseCompoundStatement() {
+    getNextToken();
+
+    std::vector<std::unique_ptr<ExprAST>> Statements;
+    while (cur_tok.type != TokenType::CloseBrace && !lexer.isEndOfFile()) {
+      auto Stmt = ParseStatement();
+      if (!Stmt)
+        return nullptr;
+      Statements.push_back(std::move(Stmt));
+    }
+
+    if (cur_tok.type != TokenType::CloseBrace)
+      return nullptr;
+
+    getNextToken();
+    return std::make_unique<CompoundStmtAST>(std::move(Statements));
+  }
+
+  std::unique_ptr<ExprAST> ParseIfStatement() {
+    getNextToken();
+
+    if (cur_tok.type != TokenType::OpenParen)
+      return nullptr;
+    getNextToken();
+
+    auto LHS = ParsePrimary();
+    if (!LHS) {
+      return nullptr;
+    }
+
+    if (cur_tok.type != TokenType::Operator) {
+      return nullptr;
+    }
+
+    std::string Op = cur_tok.value;
+    getNextToken();
+
+    auto RHS = ParsePrimary();
+    if (!RHS) {
+      return nullptr;
+    }
+
+    auto Condition =
+        std::make_unique<BinaryExprAST>(Op, std::move(LHS), std::move(RHS));
+
+    if (cur_tok.type != TokenType::CloseParen) {
+      return nullptr;
+    }
+    getNextToken();
+
+    auto ThenBranch = ParseStatement();
+    if (!ThenBranch) {
+      return nullptr;
+    }
+
+    std::unique_ptr<ExprAST> ElseBranch = nullptr;
+    if (cur_tok.type == TokenType::Keyword && cur_tok.value == "else") {
+      getNextToken();
+      ElseBranch = ParseStatement();
+      if (!ElseBranch) {
+        return nullptr;
+      }
+    }
+
+    return std::make_unique<IfStmtAST>(
+        std::move(Condition), std::move(ThenBranch), std::move(ElseBranch));
+  }
+
+  std::unique_ptr<ExprAST> ParseReturnStatement() {
+    getNextToken();
+
+    std::unique_ptr<ExprAST> ReturnExpr = nullptr;
+    if (cur_tok.type != TokenType::Semicolon) {
+      ReturnExpr = ParseExpression();
+      if (!ReturnExpr)
+        return nullptr;
+    }
+
+    if (cur_tok.type != TokenType::Semicolon)
+      return nullptr;
+
+    getNextToken();
+    return std::make_unique<ReturnStmtAST>(std::move(ReturnExpr));
   }
 
 private:

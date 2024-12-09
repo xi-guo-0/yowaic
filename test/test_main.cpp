@@ -231,6 +231,52 @@ TEST(ParserTest, ParseParenExpression) {
   EXPECT_EQ(lhs_rhs->value, 2);
 }
 
+TEST(ParserTest, ParseDeclaration) {
+  Parser parser("int x = 42;");
+  auto Result = parser.ParseDeclaration();
+  ASSERT_NE(Result, nullptr);
+  auto *Decl = dynamic_cast<DeclarationAST *>(Result.get());
+  ASSERT_NE(Decl, nullptr);
+  auto *Init = dynamic_cast<IntLiteral *>(Decl->InitExpr.get());
+  ASSERT_NE(Init, nullptr);
+  EXPECT_EQ(Init->value, 42);
+}
+
+TEST(ParserTest, ParseIfStatement) {
+  Parser parser("if (x > 10) { return 1; }");
+
+  auto Result = parser.ParseIfStatement();
+
+  ASSERT_NE(Result, nullptr);
+  auto *If = dynamic_cast<IfStmtAST *>(Result.get());
+  ASSERT_NE(If, nullptr);
+
+  auto *Cond = dynamic_cast<BinaryExprAST *>(If->Condition.get());
+  ASSERT_NE(Cond, nullptr);
+
+  auto *Then = dynamic_cast<CompoundStmtAST *>(If->ThenBranch.get());
+  ASSERT_NE(Then, nullptr);
+}
+
+TEST(ParserTest, ParseCompoundStatement) {
+  Parser parser("{ int x = 42; return x; }");
+  auto Result = parser.ParseCompoundStatement();
+  ASSERT_NE(Result, nullptr);
+  auto *Compound = dynamic_cast<CompoundStmtAST *>(Result.get());
+  ASSERT_NE(Compound, nullptr);
+}
+
+TEST(ParserTest, ParseReturnStatement) {
+  Parser parser("return 42;");
+  auto Result = parser.ParseReturnStatement();
+  ASSERT_NE(Result, nullptr);
+  auto *Return = dynamic_cast<ReturnStmtAST *>(Result.get());
+  ASSERT_NE(Return, nullptr);
+  auto *Value = dynamic_cast<IntLiteral *>(Return->ReturnExpr.get());
+  ASSERT_NE(Value, nullptr);
+  EXPECT_EQ(Value->value, 42);
+}
+
 int main(int argc, char **argv) {
   ::testing::InitGoogleTest(&argc, argv);
   return RUN_ALL_TESTS();
