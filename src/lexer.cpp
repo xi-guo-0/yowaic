@@ -7,7 +7,14 @@ export enum class TokenType {
   Identifier,
   Integer,
   Operator,
-  Punctuation,
+  OpenParen,
+  CloseParen,
+  OpenBrace,
+  CloseBrace,
+  OpenBracket,
+  CloseBracket,
+  Comma,
+  Semicolon,
   StringLiteral,
   Invalid,
   EndOfFile
@@ -150,9 +157,40 @@ public:
   }
 
   Token parsePunctuation() {
-    std::string value(1, currentChar());
+    std::size_t startColumn = column;
+    char c = currentChar();
     advance();
-    return Token(TokenType::Punctuation, value, line, column);
+
+    TokenType type;
+    switch (c) {
+    case '(':
+      type = TokenType::OpenParen;
+      break;
+    case ')':
+      type = TokenType::CloseParen;
+      break;
+    case '{':
+      type = TokenType::OpenBrace;
+      break;
+    case '}':
+      type = TokenType::CloseBrace;
+      break;
+    case '[':
+      type = TokenType::OpenBracket;
+      break;
+    case ']':
+      type = TokenType::CloseBracket;
+      break;
+    case ',':
+      type = TokenType::Comma;
+      break;
+    case ';':
+      type = TokenType::Semicolon;
+      break;
+    default:
+      return Token(TokenType::Invalid, std::string(1, c), line, startColumn);
+    }
+    return Token(type, std::string(1, c), line, startColumn);
   }
 
   Token parseStringLiteral() {
@@ -175,8 +213,8 @@ public:
   }
 
   bool isPunctuation(char c) {
-    return c == ';' || c == ',' || c == '.' || c == '(' || c == ')' ||
-           c == '{' || c == '}' || c == '[' || c == ']' || c == ':';
+    return c == '(' || c == ')' || c == '{' || c == '}' || c == '[' ||
+           c == ']' || c == ',' || c == ';';
   }
 };
 

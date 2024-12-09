@@ -140,21 +140,95 @@ protected:
 
 TEST(ParserTest, ParseIntLiteral_ShouldReturnCorrectIntLiteral) {
   Parser parser("42");
-  parser.getNextToken();
   EXPECT_EQ(dynamic_cast<IntLiteral *>(parser.ParseIntLiteral().get())->value,
             42);
 }
 
 TEST(ParserTest, ParseVariable) {
   Parser parser("x");
-
-  parser.getNextToken();
   auto result = parser.ParseVariable();
 
   EXPECT_TRUE(result != nullptr);
   auto varExpr = dynamic_cast<VariableExprAST *>(result.get());
   EXPECT_TRUE(varExpr != nullptr);
   EXPECT_EQ(varExpr->Name, "x");
+}
+
+TEST(ParserTest, ParseBinaryExpression) {
+  std::string source = "3 + 4 * 2";
+  Parser parser(source);
+
+  auto expr = parser.ParseExpression();
+  ASSERT_NE(expr, nullptr);
+
+  auto *binExpr = dynamic_cast<BinaryExprAST *>(expr.get());
+  ASSERT_NE(binExpr, nullptr);
+  EXPECT_EQ(binExpr->Op, "+");
+
+  auto *lhs = dynamic_cast<IntLiteral *>(binExpr->LHS.get());
+  ASSERT_NE(lhs, nullptr);
+  EXPECT_EQ(lhs->value, 3);
+
+  auto *rhs = dynamic_cast<BinaryExprAST *>(binExpr->RHS.get());
+  ASSERT_NE(rhs, nullptr);
+  EXPECT_EQ(rhs->Op, "*");
+
+  auto *rhs_lhs = dynamic_cast<IntLiteral *>(rhs->LHS.get());
+  ASSERT_NE(rhs_lhs, nullptr);
+  EXPECT_EQ(rhs_lhs->value, 4);
+
+  auto *rhs_rhs = dynamic_cast<IntLiteral *>(rhs->RHS.get());
+  ASSERT_NE(rhs_rhs, nullptr);
+  EXPECT_EQ(rhs_rhs->value, 2);
+}
+
+TEST(ParserTest, ParseFunctionCall) {
+  std::string source = "printf(42, x)";
+  Parser parser(source);
+
+  auto expr = parser.ParseExpression();
+  ASSERT_NE(expr, nullptr);
+
+  auto *callExpr = dynamic_cast<CallExprAST *>(expr.get());
+  ASSERT_NE(callExpr, nullptr);
+  EXPECT_EQ(callExpr->Callee, "printf");
+  ASSERT_EQ(callExpr->Args.size(), 2);
+
+  auto *firstArg = dynamic_cast<IntLiteral *>(callExpr->Args[0].get());
+  ASSERT_NE(firstArg, nullptr);
+  EXPECT_EQ(firstArg->value, 42);
+
+  auto *secondArg = dynamic_cast<VariableExprAST *>(callExpr->Args[1].get());
+  ASSERT_NE(secondArg, nullptr);
+  EXPECT_EQ(secondArg->Name, "x");
+}
+
+TEST(ParserTest, ParseParenExpression) {
+  std::string source = "(1 + 2) * 3";
+  Parser parser(source);
+
+  auto expr = parser.ParseExpression();
+  ASSERT_NE(expr, nullptr);
+
+  auto *binExpr = dynamic_cast<BinaryExprAST *>(expr.get());
+  ASSERT_NE(binExpr, nullptr);
+  EXPECT_EQ(binExpr->Op, "*");
+
+  auto *rhs = dynamic_cast<IntLiteral *>(binExpr->RHS.get());
+  ASSERT_NE(rhs, nullptr);
+  EXPECT_EQ(rhs->value, 3);
+
+  auto *lhs = dynamic_cast<BinaryExprAST *>(binExpr->LHS.get());
+  ASSERT_NE(lhs, nullptr);
+  EXPECT_EQ(lhs->Op, "+");
+
+  auto *lhs_lhs = dynamic_cast<IntLiteral *>(lhs->LHS.get());
+  ASSERT_NE(lhs_lhs, nullptr);
+  EXPECT_EQ(lhs_lhs->value, 1);
+
+  auto *lhs_rhs = dynamic_cast<IntLiteral *>(lhs->RHS.get());
+  ASSERT_NE(lhs_rhs, nullptr);
+  EXPECT_EQ(lhs_rhs->value, 2);
 }
 
 int main(int argc, char **argv) {
