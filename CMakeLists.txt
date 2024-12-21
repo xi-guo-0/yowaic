@@ -3,6 +3,7 @@ cmake_minimum_required(VERSION 3.30)
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_MODULE_STD ON)
+# https://gitlab.kitware.com/cmake/cmake/-/issues/25965#note_1523575
 set(CMAKE_EXPERIMENTAL_CXX_IMPORT_STD
   # This specific value changes as experimental support evolves. See
   # `Help/dev/experimental.rst` in the CMake source corresponding to
@@ -25,7 +26,13 @@ set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
+# ---- Add dependencies via CPM ----
+# see https://github.com/TheLartians/CPM.cmake for more info
+include(${PROJECT_SOURCE_DIR}/cmake/CPM.cmake)
+
 add_subdirectory(modules/llvm)
+add_subdirectory(modules/tree-sitter)
+add_subdirectory(modules/tree-sitter-c)
 
 add_executable(${PROJECT_NAME})
 set(PROJECT_NAME_LIB "${PROJECT_NAME}lib")
@@ -34,9 +41,6 @@ add_subdirectory(src)
 
 include(CTest)
 if(BUILD_TESTING)
-  # ---- Add dependencies via CPM ----
-  # see https://github.com/TheLartians/CPM.cmake for more info
-  include(${PROJECT_SOURCE_DIR}/cmake/CPM.cmake)
   CPMAddPackage(
     NAME GoogleTest
     GITHUB_REPOSITORY google/googletest

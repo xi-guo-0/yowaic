@@ -1,4 +1,4 @@
-target_link_libraries(${PROJECT_NAME_LIB} PUBLIC llvm-modules)
+target_link_libraries(${PROJECT_NAME_LIB} PUBLIC llvm-modules tree-sitter-c-modules tree-sitter-modules)
 target_sources(${PROJECT_NAME_LIB} PUBLIC
   FILE_SET cxx_modules TYPE CXX_MODULES
   FILES
