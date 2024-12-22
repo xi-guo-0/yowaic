@@ -1,9 +1,12 @@
+#include <algorithm>
 #include <compare>
 #include <gtest/gtest.h>
 #include <ranges>
 
 import lexer;
 import parser;
+import tree_sitter;
+import tree_sitter_c;
 
 class LexerTest : public ::testing::Test {
 protected:
@@ -267,14 +270,25 @@ TEST(ParserTest, ParseCompoundStatement) {
 }
 
 TEST(ParserTest, ParseReturnStatement) {
-  Parser parser("return 42;");
-  auto Result = parser.ParseReturnStatement();
-  ASSERT_NE(Result, nullptr);
-  auto *Return = dynamic_cast<ReturnStmtAST *>(Result.get());
-  ASSERT_NE(Return, nullptr);
-  auto *Value = dynamic_cast<IntLiteral *>(Return->ReturnExpr.get());
-  ASSERT_NE(Value, nullptr);
-  EXPECT_EQ(Value->value, 42);
+  std::string source_code = "return 42;";
+  TSParser *parser = ts_parser_new();
+  ts_parser_set_language(parser, tree_sitter_c());
+  TSTree *tree = ts_parser_parse_string(parser, nullptr, source_code.c_str(),
+                                        source_code.size());
+  TSNode translation_unit_node = ts_tree_root_node(tree);
+  ASSERT_EQ(ts_node_child_count(translation_unit_node), 1);
+  TSNode statement_node = ts_node_child(translation_unit_node, 0);
+  ASSERT_EQ(ts_node_child_count(statement_node), 3);
+  EXPECT_STREQ(ts_node_type(statement_node), "return_statement");
+  EXPECT_STREQ(ts_node_type(ts_node_child(statement_node, 0)), "return");
+  TSNode number_literal = ts_node_child(statement_node, 1);
+  ASSERT_STREQ(ts_node_type(number_literal), "number_literal");
+  unsigned start_byte = ts_node_start_byte(number_literal);
+  unsigned end_byte = ts_node_end_byte(number_literal);
+  std::string_view number_view(source_code.data() + start_byte,
+                               end_byte - start_byte);
+  EXPECT_TRUE(number_view == "42");
+  EXPECT_STREQ(ts_node_type(ts_node_child(statement_node, 2)), ";");
 }
 
 int main(int argc, char **argv) {

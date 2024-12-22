@@ -1,4 +1,5 @@
 module;
+
 #include "llvm/ADT/APFloat.h"
 #include "llvm/ADT/STLExtras.h"
 #include "llvm/ADT/StringRef.h"
@@ -20,7 +21,6 @@ module;
 #include "llvm/IR/IRBuilder.h"
 #include "llvm/IR/Instructions.h"
 #include "llvm/IR/LLVMContext.h"
-#include "llvm/IR/LLVMContext.h"
 #include "llvm/IR/LegacyPassManager.h"
 #include "llvm/IR/Module.h"
 #include "llvm/IR/Type.h"
@@ -34,3 +34,15 @@ module;
 #include "llvm/TargetParser/Host.h"
 
 export module llvm;
+
+export namespace llvm {
+using ::llvm::BasicBlock;
+using ::llvm::ConstantInt;
+using ::llvm::Function;
+using ::llvm::FunctionType;
+using ::llvm::IRBuilder;
+using ::llvm::LLVMContext;
+using ::llvm::Module;
+using ::llvm::outs;
+using ::llvm::Value;
+} // namespace llvm
